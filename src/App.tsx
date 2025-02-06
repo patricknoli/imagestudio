@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css'
 import { Input } from './components/ui/input'
 import { Button } from './components/ui/button';
-import { Brush, Eraser, Pencil, PlusCircle, SquareDashed, Trash, Undo } from 'lucide-react';
+import { Brush, Eraser, Pencil, PlusCircle, SquareDashed, Trash, Undo, ZoomIn, ZoomOut } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/ui/tooltip';
 import { Separator } from './components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './components/ui/sheet';
@@ -14,6 +14,7 @@ function App() {
   const [manageClasses, setManageClasses] = useState<boolean>(false);
   const [classes, setClasses] = useState<{ label: string; color: string }[]>([]);
   const [newClass, setNewClass] = useState<{ label: string; color: string }>({ label: '', color: '' });
+  const [imageZoom, setImageZoom] = useState<number>(1);
 
   function addClass(newClass: { label: string; color: string }) {
     if (classes.find(item => item.color === newClass.color)) {
@@ -39,13 +40,69 @@ function App() {
         <p className='text-white text-lg'>Upload your image to get started.</p>
 
         <div className='mt-4'>
-          <Input className='text-white border-white w-[400px] mx-auto' type='file'
+          <Input className='text-white border-white w-full md:w-[400px] mx-auto' type='file'
             onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)} />
         </div>
 
         {image && (
-          <div className='preview relative mt-4'>
-            <div className='tools absolute top-4 left-[-52px] flex flex-col gap-2 p-2 bg-gray-300 rounded'>
+          <>
+            <div className='preview relative mt-4 overflow-scroll md:overflow-visible'>
+              <div className='tools hidden md:flex absolute top-4 left-[-52px] flex-col gap-2 p-2 bg-gray-300 rounded'>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="default" className={`${tool == "brush" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+                        size="icon" onClick={() => setTool('brush')}>
+                        <Brush />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className='text-white p-1 rounded bg-black/50 mb-2'>Brush annotation</span>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="default" className={`${tool == "polygon" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+                        size="icon" onClick={() => setTool('polygon')}>
+                        <SquareDashed />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className='text-white p-1 rounded bg-black/50 mb-2'>Polygon annotation</span>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Separator className='my-1 bg-black' />
+
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="default" className={`${tool == "eraser" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+                        size="icon" onClick={() => setTool('eraser')}>
+                        <Eraser />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className='text-white p-1 rounded bg-black/50 mb-2'>Eraser</span>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="default" className='bg-zinc-600 text-white' size="icon">
+                        <Undo />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <span className='text-white p-1 rounded bg-black/50 mb-2'>Undo last edition</span>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <img src={URL.createObjectURL(image)} alt="" style={{
+                transform: `scale(${imageZoom})`,
+              }} />
+            </div>
+            <div className='tools md:hidden flex gap-2 p-2 bg-gray-300 rounded'>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
@@ -70,7 +127,7 @@ function App() {
                   </TooltipContent>
                 </Tooltip>
 
-                <Separator className='my-1 bg-black' />
+                <Separator orientation='vertical' className='my-1 bg-black h-[30px]' />
 
                 <Tooltip>
                   <TooltipTrigger>
@@ -94,10 +151,19 @@ function App() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </div>
 
-            <img src={URL.createObjectURL(image)} alt="" />
-          </div>
+              <Separator orientation='vertical' className='my-1 bg-black h-[30px]' />
+
+              <Button variant="default" className='bg-zinc-600 text-white' size="icon"
+                onClick={() => setImageZoom(imageZoom + 0.1)}>
+                <ZoomIn />
+              </Button>
+              <Button variant="default" className='bg-zinc-600 text-white' size="icon"
+                onClick={() => setImageZoom(imageZoom - 0.1)}>
+                <ZoomOut />
+              </Button>
+            </div>
+          </>
         )}
       </div>
 
