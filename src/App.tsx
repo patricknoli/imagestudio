@@ -8,6 +8,7 @@ import { Separator } from './components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './components/ui/sheet';
 import { toast } from 'sonner';
 import { Canvas, controlsUtils, FabricImage, PencilBrush, Polygon } from 'fabric';
+import { exportCOCO } from './support/coco';
 
 export type classType = {
   label: string; color: string
@@ -348,7 +349,9 @@ function App() {
       <div className='footer fixed bottom-0 left-0 w-full p-2 md:p-4 bg-white shadow-lg'>
         <div className='container mx-auto flex gap-4 items-center'>
           <Button variant='default' className='bg-black text-white' onClick={() => setManageClasses(true)}>Manage classes</Button>
-          <Button variant='default' className='bg-black text-white'>Export COCO</Button>
+          {canvas && image && (
+            <Button variant='default' className='bg-black text-white' onClick={() => exportCOCO(canvas, classes, image)}>Export COCO</Button>
+          )}
         </div>
       </div>
     </>
