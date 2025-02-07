@@ -1523,7 +1523,7 @@ esutils@^2.0.2:
 
 fabric@^6.5.4:
   version "6.5.4"
-  resolved "https://registry.npmjs.org/fabric/-/fabric-6.5.4.tgz"
+  resolved "https://registry.yarnpkg.com/fabric/-/fabric-6.5.4.tgz#4f43ed8520ee9f55a45d498cb3b400020a405583"
   integrity sha512-X+O8G+3aDQSp3lxRekvIy/gMwtzcjAG7IvGXjb4PeUD6+nUJfSfGnaEWpni9aAcXuGz8zXhpMQQELV+4FfRTwA==
   optionalDependencies:
     canvas "^2.11.2"

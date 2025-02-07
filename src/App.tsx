@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './App.css'
 import { Input } from './components/ui/input'
 import { Button } from './components/ui/button';
-import { Brush, Eraser, Pencil, PlusCircle, SquareDashed, Trash, Undo, ZoomIn, ZoomOut } from 'lucide-react';
+import { Brush, Eraser, Move, PenLine, PlusCircle, SquareDashed, Trash, Undo } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/ui/tooltip';
 import { Separator } from './components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './components/ui/sheet';
@@ -17,13 +17,33 @@ function App() {
   const canvasRef = useRef(null);
   const [canvas, setCanvas] = useState<Canvas>();
   const [image, setImage] = useState<File | null>(null);
-  const [tool, setTool] = useState<'brush' | 'polygon'>();
+  const [tool, setTool] = useState<'move' | 'brush' | 'polygon' | 'eraser'>('move');
   const [manageClasses, setManageClasses] = useState<boolean>(false);
   const [classes, setClasses] = useState<classType[]>([]);
   const [currentClass, setCurrentClass] = useState<classType>();
   const [newClass, setNewClass] = useState<classType>({ label: '', color: '' });
-  const [imageZoom, setImageZoom] = useState<number>(1);
+  const [brushWidth, setBrushWidth] = useState<number>(15);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [showBrushWidth, setShowBrushWidth] = useState<boolean>(false);
 
+  function saveHistory() {
+    if (canvas) {
+      const json = canvas.toJSON();
+      setHistory(prevHistory => [...prevHistory.slice(0, historyIndex + 1), JSON.stringify(json)]);
+      setHistoryIndex(prevIndex => prevIndex + 1);
+    }
+  }
+
+  function undoLast() {
+    if (historyIndex > 0) {
+      const previousState = history[historyIndex - 1];
+      canvas?.loadFromJSON(previousState, () => {
+        canvas.renderAll();
+        setHistoryIndex(historyIndex - 1);
+      });
+    }
+  }
 
   function addClass(newClass: { label: string; color: string }) {
     if (classes.find(item => item.color === newClass.color)) {
@@ -64,8 +84,8 @@ function App() {
         const img = new FabricImage(imgElement, {
           scaleX: canvas.width / imgElement.width,
           scaleY: canvas.width / imgElement.width,
-          selectable: false, // Disable dragging
-          evented: false // Disable events
+          selectable: false,
+          evented: false
         });
 
         if (imgElement.width > canvas.width) {
@@ -79,7 +99,6 @@ function App() {
   }, [image]);
 
   function addPolygon() {
-    console.log('polygon');
     if (canvas) {
       const points = [
         { x: 50, y: 0 },
@@ -97,6 +116,7 @@ function App() {
       });
       canvas.add(poly);
       canvas.centerObject(poly);
+      saveHistory();
 
       let editing = false;
       poly.on('mousedblclick', () => {
@@ -118,14 +138,32 @@ function App() {
     }
   }
 
-  function brushMode() {
+  function selectionMode() {
     if (canvas) {
-      canvas.isDrawingMode = !canvas.isDrawingMode;
-      canvas.freeDrawingBrush = new PencilBrush(canvas);
-      canvas.freeDrawingBrush.width = 15;
-      canvas.freeDrawingBrush.color = currentClass ? currentClass.color : 'black';
+      canvas.isDrawingMode = false;
     }
   }
+
+  function brushMode() {
+    if (canvas) {
+      canvas.isDrawingMode = true;
+      canvas.freeDrawingBrush = new PencilBrush(canvas);
+      canvas.freeDrawingBrush.width = brushWidth;
+      canvas.freeDrawingBrush.color = currentClass ? currentClass.color : 'black';
+      saveHistory();
+    }
+  }
+
+  function eraserMode() {
+    if (canvas) {
+      const selected = canvas.getActiveObject();
+      selected ? canvas.remove(selected) : toast("No selection to delete");
+    }
+  }
+
+  useEffect(() => {
+    brushMode();
+  }, [brushWidth])
 
   return (
     <>
@@ -141,6 +179,17 @@ function App() {
         <div className='preview relative mt-4 overflow-scroll md:overflow-visible md:pb-20'>
           <div className='tools hidden md:flex absolute top-4 left-[-52px] flex-col gap-2 p-2 bg-gray-300 rounded'>
             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Button variant="default" className={`${tool == "move" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+                    size="icon" onClick={() => { selectionMode(); setTool('move') }}>
+                    <Move />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className='text-white p-1 rounded bg-black/50 mb-2'>Selection mode</span>
+                </TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger>
                   <Button variant="default" className={`${tool == "brush" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
@@ -168,8 +217,8 @@ function App() {
 
               <Tooltip>
                 <TooltipTrigger>
-                  <Button variant="default" className={`bg-zinc-600 text-white`}
-                    size="icon" onClick={() => { }}>
+                  <Button variant="default" className={`${tool == "eraser" ? 'bg-sky-600' : 'bg-zinc-600'} text-white`}
+                    size="icon" onClick={() => { eraserMode(); }}>
                     <Eraser />
                   </Button>
                 </TooltipTrigger>
@@ -179,7 +228,8 @@ function App() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger>
-                  <Button variant="default" className='bg-zinc-600 text-white' size="icon">
+                  <Button variant="default" className='bg-zinc-600 text-white' size="icon"
+                    onClick={() => undoLast()}>
                     <Undo />
                   </Button>
                 </TooltipTrigger>
@@ -201,79 +251,61 @@ function App() {
             </TooltipProvider>
           </div>
 
+          <div className='hidden md:block absolute md:top-[45%] top-4 left-[-108px] gap-2 p-2 bg-gray-300 rounded -rotate-90'>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Input type="range" className='' value={brushWidth} onChange={(e) => setBrushWidth(+e.target.value)} />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className='text-white p-1 rounded bg-black/50 mb-2'>Brush width</span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           <canvas id="canvas" ref={canvasRef} />
         </div>
         <div className='tools md:hidden flex gap-2 p-2 bg-gray-300 rounded'>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <Button variant="default" className={`${tool == "brush" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
-                  size="icon" onClick={() => setTool('brush')}>
-                  <Brush />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-white p-1 rounded bg-black/50 mb-2'>Brush annotation</span>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger>
-                <Button variant="default" className={`${tool == "polygon" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
-                  size="icon" onClick={() => { addPolygon(); setTool('polygon') }}>
-                  <SquareDashed />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-white p-1 rounded bg-black/50 mb-2'>Polygon annotation</span>
-              </TooltipContent>
-            </Tooltip>
-
-            <Separator orientation='vertical' className='my-1 bg-black h-[30px]' />
-
-            <Tooltip>
-              <TooltipTrigger>
-                <Button variant="default" className={`bg-zinc-600 text-white`}
-                  size="icon" onClick={() => { }}>
-                  <Eraser />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-white p-1 rounded bg-black/50 mb-2'>Eraser</span>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger>
-                <Button variant="default" className='bg-zinc-600 text-white' size="icon">
-                  <Undo />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-white p-1 rounded bg-black/50 mb-2'>Undo last edition</span>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger>
-                <Button size="icon" className='bg-transparent' onClick={() => setManageClasses(true)}>
-                  <span className='w-4 h-4 rounded-full' style={{ backgroundColor: currentClass?.color }}></span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className='text-white p-1 rounded bg-black/50 mb-2'>Current class</span>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button variant="default" className={`${tool == "move" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+            size="icon" onClick={() => { selectionMode(); setTool('move') }}>
+            <Move />
+          </Button>
+          <Button variant="default" className={`${tool == "brush" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+            size="icon" onClick={() => setTool('brush')}>
+            <Brush />
+          </Button>
+          <Button variant="default" className={`${tool == "polygon" ? 'bg-sky-600' : 'bg-zinc-600'}  text-white`}
+            size="icon" onClick={() => { addPolygon(); setTool('polygon') }}>
+            <SquareDashed />
+          </Button>
 
           <Separator orientation='vertical' className='my-1 bg-black h-[30px]' />
 
-          <Button variant="default" className='bg-zinc-600 text-white' size="icon"
-            onClick={() => setImageZoom(imageZoom + 0.1)}>
-            <ZoomIn />
+          <Button variant="default" className={`${tool == "eraser" ? 'bg-sky-600' : 'bg-zinc-600'} text-white`}
+            size="icon" onClick={() => { }}>
+            <Eraser />
           </Button>
-          <Button variant="default" className='bg-zinc-600 text-white' size="icon"
-            onClick={() => setImageZoom(imageZoom - 0.1)}>
-            <ZoomOut />
+          <Button variant="default" className='bg-zinc-600 text-white' size="icon">
+            <Undo />
           </Button>
+
+          <Button size="icon" className='bg-transparent' onClick={() => setManageClasses(true)}>
+            <span className='w-4 h-4 rounded-full' style={{ backgroundColor: currentClass?.color }}></span>
+          </Button>
+
+          <TooltipProvider>
+            <Tooltip open={showBrushWidth} onOpenChange={setShowBrushWidth}>
+              <TooltipTrigger>
+                <Button size="icon" className='bg-zinc-600 text-white' onClick={() => setShowBrushWidth(!showBrushWidth)}>
+                  <PenLine />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Input type="range" className='' value={brushWidth} onChange={(e) => setBrushWidth(+e.target.value)} />
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -316,7 +348,7 @@ function App() {
       <div className='footer fixed bottom-0 left-0 w-full p-2 md:p-4 bg-white shadow-lg'>
         <div className='container mx-auto flex gap-4 items-center'>
           <Button variant='default' className='bg-black text-white' onClick={() => setManageClasses(true)}>Manage classes</Button>
-          <Button variant='default' className='bg-black text-white'>Save annotations</Button>
+          <Button variant='default' className='bg-black text-white'>Export COCO</Button>
         </div>
       </div>
     </>
