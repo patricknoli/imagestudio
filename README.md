@@ -1,50 +1,38 @@
-# React + TypeScript + Vite
+# Image Annotation Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This application is a simple Image Annotation tool built with React.ts and Fabric.js.
+Read more about stack specifications and decisions [here](/docs/SPECIFICATIONS.MD)
 
-Currently, two official plugins are available:
+Author: Patrick Nicacio de Oliveira
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Expanding the ESLint configuration
+## To run the application follow the instructions
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### 1 - Clone the repository
 
-- Configure the top-level `parserOptions` property like this:
+### 2 - Install dependencies
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+Go to app directory and run the command on terminal
+
+using npm:
+```
+npm install
+```
+or yarn
+```
+yarn
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### 3 - Run the application locally
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+Now start the application on localhost by running the following command
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
 ```
+npm run dev
+```
+or
+```
+yarn dev
+```
+
+Now the app will be available at localhost:5173
